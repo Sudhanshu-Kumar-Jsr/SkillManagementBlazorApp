@@ -1,0 +1,6 @@
+@SkillManagementCoreApi_HostAddress = http://localhost:5132
+
+GET {{SkillManagementCoreApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

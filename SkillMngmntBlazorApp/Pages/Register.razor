@@ -1,0 +1,19 @@
+﻿@page "/register"
+@inject AuthService AuthService 
+
+@inject NavigationManager Nav 
+<h3>Register</h3> 
+<EditForm Model="model" OnValidSubmit="RegisterUser">
+    <DataAnnotationsValidator /> <ValidationSummary />
+    <InputText @bind-Value="model.Email" placeholder="Email" class="form-control" />
+    <InputText @bind-Value="model.Password" type="password" placeholder="Password" class="form-control" />
+    <button class="btn btn-primary mt-2">Register</button>
+</EditForm>
+@code { 
+    RegisterDto model = new RegisterDto();
+    async Task RegisterUser() 
+    {
+        var result = await AuthService.Register(model);
+        if (result == "Success") Nav.NavigateTo("/login");
+    }
+    } 

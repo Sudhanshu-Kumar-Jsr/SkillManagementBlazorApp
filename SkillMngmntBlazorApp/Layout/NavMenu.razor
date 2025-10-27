@@ -1,0 +1,88 @@
+﻿@inject AuthenticationStateProvider AuthStateProvider
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="" id="anchor">Skill Management</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        @if (user?.Identity?.IsAuthenticated != true)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/register">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Register
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/login">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Login
+                </NavLink>
+            </div>
+        }
+
+        @if (user?.Identity?.IsAuthenticated == true)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/skills">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> My Skills
+                </NavLink>
+            </div>
+
+            @if (user.IsInRole("Admin"))
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="/admin/users">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Admin Panel
+                    </NavLink>
+                </div>
+            }
+        }
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+    private ClaimsPrincipal? user;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Subscribe to authentication state changes
+        AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        var authState = await task;
+        user = authState.User;
+
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+}

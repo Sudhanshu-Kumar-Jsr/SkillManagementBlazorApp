@@ -1,0 +1,53 @@
+﻿@page "/login"
+
+@inject AuthService AuthService
+@inject NavigationManager Nav
+
+<h3>Login</h3>
+
+<EditForm Model="@model" OnValidSubmit="@LoginUser">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-2">
+        <InputText @bind-Value="model.Email" placeholder="Email" class="form-control" />
+    </div>
+
+    <div class="mb-2">
+        <InputText @bind-Value="model.Password" type="password" placeholder="Password" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-success mt-2">Login</button>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger mt-3">@errorMessage</div>
+    }
+</EditForm>
+
+@code {
+    // The form model (you can also use a class instead of a record)
+    LoginDto model = new LoginDto();
+
+    // For showing login error messages
+    string? errorMessage;
+
+    // This method runs when the form is successfully validated and submitted
+    async Task LoginUser()
+    {
+        errorMessage = null;
+
+        var success = await AuthService.Login(model);
+
+        if (success)
+        {
+            // Navigate to home page if login succeeded
+            Nav.NavigateTo("/");
+        }
+        else
+        {
+            // Show error message if login failed
+            errorMessage = "Invalid email or password. Please try again.";
+        }
+    }
+}
