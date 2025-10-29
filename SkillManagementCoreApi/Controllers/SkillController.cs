@@ -53,13 +53,51 @@ namespace SkillManagementCoreApi.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var skills = await _context.UserSkills.Include(us => us.Skill).Where(us => us.UserId == userId).Select(us => new
             {
+                us.Skill.Id,
                 us.Skill.Name,
                 us.Skill.ProficiencyLevel
             }).ToListAsync(); 
             return Ok(skills);
         }
-    }
 
-   
+
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateSkill(int id, [FromBody] SkillDto dto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Unauthorized();
+
+            var userSkill = await _context.UserSkills
+                .Include(us => us.Skill)
+                .FirstOrDefaultAsync(us => us.UserId == userId && us.Skill.Id == id);
+
+            if (userSkill == null)
+                return NotFound("Skill not found for this user");
+
+            userSkill.Skill.Name = dto.Name;
+            userSkill.Skill.ProficiencyLevel = dto.ProficiencyLevel;
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Skill updated successfully" });
+        }
+
+        [HttpDelete("delete/{id}")]
+        public async Task<IActionResult> DeleteSkill(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return Unauthorized();
+
+            var userSkill = await _context.UserSkills
+                .FirstOrDefaultAsync(us => us.UserId == userId && us.SkillId == id);
+
+            if (userSkill == null)
+                return NotFound("Skill not found for this user");
+
+            _context.UserSkills.Remove(userSkill);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Skill deleted successfully" });
+        }
+
+    }
 }
 

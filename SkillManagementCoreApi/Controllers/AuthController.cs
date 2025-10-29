@@ -31,6 +31,7 @@ namespace SkillManagementCoreApi.Controllers
             // 1. Create the user
             var user = new ApplicationUser
             {
+                Name = dto.Name,
                 UserName = dto.Email,
                 Email = dto.Email,                
             };

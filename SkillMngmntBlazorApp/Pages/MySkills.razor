@@ -1,54 +1,199 @@
 ﻿@page "/skills"
 @inject SkillService SkillService
-<h3>My Skills</h3>
-<EditForm Model="newSkill" OnValidSubmit="AddSkill"> 
-    <DataAnnotationsValidator /> 
-    <InputText @bind-Value="newSkill.Name" placeholder="Skill name" class="form-control" /> 
-    <InputText @bind-Value="newSkill.ProficiencyLevel" placeholder="Proficiency" class="form-control" />
-    <button class="btn btn-primary mt-2">Add Skill</button>
-</EditForm> 
-@if (skills != null) 
-{ 
-    <h5 class="mt-4">Your Skills</h5> 
-    <ul>
-        <table class="table table-striped table-bordered">
-            <thead class="table-dark">
-                <tr>
-                    <th>SL No.</th>
-                    <th>Skill Name</th>
-                    <th>Proficiency Level</th>
-                </tr>
-            </thead>
-            <tbody>
-                @for (int i = 0; i < skills.Count; i++)
-                {
-                    var skill = skills[i];
-                    <tr>
-                        <td>@(i + 1)</td> 
-                        <td>@skill.Name</td>
-                        <td>@skill.ProficiencyLevel</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
 
-        </ul> 
+<h3>My Skills</h3>
+
+<EditForm Model="newSkill" OnValidSubmit="AddSkill">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-2">
+        <InputText @bind-Value="newSkill.Name" placeholder="Skill name" class="form-control" />
+        <ValidationMessage For="@(() => newSkill.Name)" />
+    </div>
+
+    <div class="mb-2">
+        <InputText @bind-Value="newSkill.ProficiencyLevel" placeholder="Proficiency" class="form-control" />
+        <ValidationMessage For="@(() => newSkill.ProficiencyLevel)" />
+    </div>
+
+    <button class="btn btn-primary mt-2">Add Skill</button>
+</EditForm>
+
+@* @if (!string.IsNullOrEmpty(notificationMessage))
+{
+    <div class="alert alert-warning mt-3">@notificationMessage</div>
+} *@
+
+@if (skills != null && skills.Any())
+{
+    <h5 class="mt-4">Your Skills</h5>
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>SL No.</th>
+                <th>Skill Name</th>
+                <th>Proficiency Level</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < skills.Count; i++)
+            {
+                var skill = skills[i];
+                <tr>
+                    <td>@(i + 1)</td>
+                    <td>
+                        @if (editingSkill?.Id == skill.Id)
+                        {
+                            <InputText @bind-Value="editingSkill.Name" class="form-control" />                        
+                        }
+                        else
+                        {
+                            @skill.Name
+                        }
+                    </td>
+                    <td>
+                        @if (editingSkill?.Id == skill.Id)
+                        {
+                            <InputText @bind-Value="editingSkill.ProficiencyLevel" class="form-control" />                         
+                        }
+                        else
+                        {
+                            @skill.ProficiencyLevel
+                        }
+                    </td>
+                    <td>
+                        @if (editingSkill?.Id == skill.Id)
+                        {
+                            <button class="btn btn-success btn-sm me-2" @onclick="() => SaveEdit((int)skill.Id)">Save</button>
+                            <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">Cancel</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-warning btn-sm me-2" @onclick="() => EditSkill(skill)">Edit</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteSkill((int)skill.Id)">Delete</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+        @if (!string.IsNullOrEmpty(notificationMessage))
+        {
+            <div class="toast show align-items-center text-white @toastColor border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        @notificationMessage
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="HideNotification"></button>
+                </div>
+            </div>
+        }
+    </div>
+
 }
-@code 
-{ 
+
+@code {
     SkillDto newSkill = new SkillDto();
     List<SkillDto>? skills;
-    protected override async Task OnInitializedAsync() 
+    SkillDto? editingSkill;
+    string? notificationMessage;
+    string toastColor = "bg-success";
+
+    protected override async Task OnInitializedAsync()
     {
-        skills = await SkillService.GetMySkills(); 
-    } 
-    async Task AddSkill() 
+        skills = await SkillService.GetMySkills();
+    }
+
+    async Task ShowNotification(string message, string color = "bg-success")
     {
-        var ok = await SkillService.AddSkill(newSkill); 
+        notificationMessage = message;
+        toastColor = color;
+        StateHasChanged();
+        await Task.Delay(4000); // auto disappear after 4 seconds
+        notificationMessage = null;
+        StateHasChanged();
+    }
+
+    void HideNotification()
+    {
+        notificationMessage = null;
+    }
+
+    async Task AddSkill()
+    {
+        if (string.IsNullOrWhiteSpace(newSkill.Name) || string.IsNullOrWhiteSpace(newSkill.ProficiencyLevel))
+        {
+            await ShowNotification("Both Skill Name and Proficiency Level are mandatory!", "bg-warning");
+            return;
+        }
+
+        var ok = await SkillService.AddSkill(newSkill);
         if (ok)
-        { 
+        {
             skills = await SkillService.GetMySkills();
             newSkill = new SkillDto();
+            await ShowNotification("Skill added successfully!", "bg-success");
         }
-    } 
-    } 
+        else
+        {
+            await ShowNotification("Failed to add skill!", "bg-danger");
+        }
+    }
+
+    void EditSkill(SkillDto skill)
+    {
+        editingSkill = new SkillDto
+            {
+                Id = skill.Id,
+                Name = skill.Name,
+                ProficiencyLevel = skill.ProficiencyLevel
+            };
+    }
+
+    void CancelEdit()
+    {
+        editingSkill = null;
+    }
+
+    async Task SaveEdit(int id)
+    {
+        if (editingSkill is not null)
+        {
+            if (string.IsNullOrWhiteSpace(editingSkill.Name) || string.IsNullOrWhiteSpace(editingSkill.ProficiencyLevel))
+            {
+                await ShowNotification("Both fields are required for update!", "bg-warning");
+                return;
+            }
+
+            var ok = await SkillService.UpdateSkill(editingSkill);
+            if (ok)
+            {
+                skills = await SkillService.GetMySkills();
+                editingSkill = null;
+                await ShowNotification("Skill updated successfully!", "bg-success");
+            }
+            else
+            {
+                await ShowNotification("Failed to update skill!", "bg-danger");
+            }
+        }
+    }
+
+    async Task DeleteSkill(int id)
+    {
+        var ok = await SkillService.DeleteSkill(id);
+        if (ok)
+        {
+            skills = await SkillService.GetMySkills();
+            await ShowNotification("Skill deleted successfully!", "bg-success");
+        }
+        else
+        {
+            await ShowNotification("Failed to delete skill!", "bg-danger");
+        }
+    }
+}
+

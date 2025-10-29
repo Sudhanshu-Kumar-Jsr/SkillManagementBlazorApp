@@ -17,6 +17,20 @@ namespace SkillMngmntBlazorApp.Services
             var response = await _httpClient.GetFromJsonAsync<List<SkillDto>>("api/skill/myskills");
             return response ?? new List<SkillDto>(); 
         }
+
+        public async Task<bool> UpdateSkill(SkillDto dto)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"api/skill/update/{dto.Id}", dto);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeleteSkill(int id)
+        {
+            var response = await _httpClient.DeleteAsync($"api/skill/delete/{id}");
+            return response.IsSuccessStatusCode;
+        }
+
+
     }
 }
 

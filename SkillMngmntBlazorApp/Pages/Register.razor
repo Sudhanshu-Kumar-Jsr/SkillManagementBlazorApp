@@ -1,19 +1,104 @@
 ﻿@page "/register"
-@inject AuthService AuthService 
+@inject AuthService AuthService
+@inject NavigationManager Nav
 
-@inject NavigationManager Nav 
-<h3>Register</h3> 
+<h3>Register</h3>
+
+<!-- ✅ Toast Notification -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080;">
+    @if (!string.IsNullOrEmpty(notificationMessage))
+    {
+        <div class="toast show text-white @toastColor" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">@notificationMessage</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="HideNotification"></button>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- ✅ Registration Form -->
 <EditForm Model="model" OnValidSubmit="RegisterUser">
-    <DataAnnotationsValidator /> <ValidationSummary />
-    <InputText @bind-Value="model.Email" placeholder="Email" class="form-control" />
-    <InputText @bind-Value="model.Password" type="password" placeholder="Password" class="form-control" />
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-2">
+        <InputText @bind-Value="model.Name" placeholder="Name" class="form-control" />
+        <ValidationMessage For="@(() => model.Name)" />
+    </div>
+
+    <div class="mb-2">
+        <InputText @bind-Value="model.Email" placeholder="Email" class="form-control" />
+        <ValidationMessage For="@(() => model.Email)" />
+    </div>
+
+    <div class="mb-2">
+        <InputText @bind-Value="model.Password" type="password" placeholder="Password" class="form-control" />
+        <ValidationMessage For="@(() => model.Password)" />
+    </div>
+
     <button class="btn btn-primary mt-2">Register</button>
 </EditForm>
-@code { 
+
+@code {
     RegisterDto model = new RegisterDto();
-    async Task RegisterUser() 
+    string? notificationMessage;
+    string toastColor = "bg-success";
+
+    async Task RegisterUser()
     {
-        var result = await AuthService.Register(model);
-        if (result == "Success") Nav.NavigateTo("/login");
+        // ✅ Validate manually for blank inputs (extra layer)
+        if (string.IsNullOrWhiteSpace(model.Name) || string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password))
+        {
+            await ShowNotification("All fields are mandatory!", "bg-warning");
+            return;
+        }
+
+        try
+        {
+            var result = await AuthService.Register(model);
+
+            if (result == "Success")
+            {
+                await ShowNotification("Registration successful! Redirecting to login...", "bg-success");
+                await Task.Delay(3000);
+                Nav.NavigateTo("/login");
+            }
+            else
+            {
+                string errorMessage;
+
+                // If result is JSON array of IdentityError objects
+                try
+                {
+                    var errors = System.Text.Json.JsonSerializer.Deserialize<List<IdentityError>>(result);
+                    errorMessage = string.Join("<br/>", errors.Select(e => e.Description));
+                }
+                catch
+                {
+                    // fallback if result is plain string
+                    errorMessage = result ?? "Registration failed!";
+                }
+
+                await ShowNotification(errorMessage, "bg-danger");
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowNotification($"An error occurred: {ex.Message}", "bg-danger");
+        }
+
     }
-    } 
+
+    async Task ShowNotification(string message, string color = "bg-success")
+    {
+        notificationMessage = message;
+        toastColor = color;
+        StateHasChanged();
+        await Task.Delay(4000);
+        notificationMessage = null;
+        StateHasChanged();
+    }
+
+    void HideNotification() => notificationMessage = null;
+}

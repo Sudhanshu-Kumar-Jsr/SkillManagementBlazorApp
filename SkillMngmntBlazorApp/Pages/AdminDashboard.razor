@@ -1,0 +1,83 @@
+﻿@page "/admin/dashboard"
+@inject AdminService AdminService
+
+<h3>Admin Dashboard</h3>
+
+<!-- ✅ Toast Notification -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1080;">
+    @if (!string.IsNullOrEmpty(notificationMessage))
+    {
+        <div class="toast show text-white @toastColor" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">@notificationMessage</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="HideNotification"></button>
+            </div>
+        </div>
+    }
+</div>
+
+@if (stats == null)
+{
+    <p>Loading dashboard...</p>
+}
+else
+{
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-center border-primary shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Total Users</h5>
+                    <h2>@stats.TotalUsers</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center border-success shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Total Skills</h5>
+                    <h2>@stats.TotalSkills</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center border-warning shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">Total User-Skill Links</h5>
+                    <h2>@stats.TotalUserSkills</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    DashboardStatsDto? stats;
+    string? notificationMessage;
+    string toastColor = "bg-success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            stats = await AdminService.GetDashboardStats();
+        }
+        catch (Exception ex)
+        {
+            await ShowNotification($"Error loading dashboard: {ex.Message}", "bg-danger");
+        }
+    }
+
+    async Task ShowNotification(string message, string color = "bg-success")
+    {
+        notificationMessage = message;
+        toastColor = color;
+        StateHasChanged();
+        await Task.Delay(4000);
+        notificationMessage = null;
+        StateHasChanged();
+    }
+
+    void HideNotification() => notificationMessage = null;
+}
